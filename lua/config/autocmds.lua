@@ -15,6 +15,23 @@ vim.api.nvim_create_autocmd("BufEnter", {
   desc = "Matikan auto-comment pada baris baru",
 })
 
+-- Windows: Neovim kadang membuka file dengan '/' (mis. lewat picker/explorer),
+-- sedangkan PDB .NET menyimpan path sumber dengan '\'. netcoredbg mencocokkan
+-- path secara literal, jadi breakpoint tidak akan ter-bind kalau separatornya beda.
+-- Paksa nama buffer memakai backslash supaya breakpoint DAP nyangkut.
+vim.api.nvim_create_autocmd("BufReadPost", {
+  callback = function(ev)
+    local name = vim.api.nvim_buf_get_name(ev.buf)
+    if name:match("^%a:/") then
+      vim.api.nvim_buf_set_name(ev.buf, (name:gsub("/", "\\")))
+      vim.api.nvim_buf_call(ev.buf, function()
+        pcall(vim.cmd, "silent! edit")
+      end)
+    end
+  end,
+  desc = "Normalkan separator path buffer ke '\\' (fix breakpoint netcoredbg)",
+})
+
 -- Memaksa background LspInlayHint menjadi transparan
 vim.api.nvim_create_autocmd({ "ColorScheme", "LspAttach" }, {
   callback = function()
